@@ -23,4 +23,4 @@ built on top of PostgreSQL, featuring:
 - built-in support for schema migrations;
 - native GraphQL support.
 
-Try the [quickstart](https://docs.geldata.com/learn/quickstart/overview/nextjs) or jump into the [docs](https://docs.geldata.com/) to get started with Gel.
+Try the [quickstart](https://docs.geldata.com/learn/quickstart/overview) or jump into the [docs](https://docs.geldata.com/) to get started with Gel.
