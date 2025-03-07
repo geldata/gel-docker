@@ -31,6 +31,6 @@ jobs:
       - name: Run tests
         run: bats tests/*.bats
       - name: Run ShellCheck
-        uses: ludeeus/action-shellcheck@1.1.0
+        uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38  # v2.0
         with:
-          ignore: tests hooks
+          ignore_paths: tests hooks
