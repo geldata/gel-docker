@@ -1,21 +1,20 @@
-version: "3.3"
 services:
-  edgedb:
+  gel:
     build:
       context: .
-      dockerfile: dockerfiles/Dockerfile.edgedb
+      dockerfile: dockerfiles/Dockerfile.gel
     environment:
-      - &pwd EDGEDB_PASSWORD=some-password
-      - EDGEDB_SERVER_TLS_CERT_FILE=/certs/server_cert.pem
-      - EDGEDB_SERVER_TLS_KEY_FILE=/certs/server_key.pem
+      - &pwd GEL_PASSWORD=some-password
+      - GEL_SERVER_TLS_CERT_FILE=/certs/server_cert.pem
+      - GEL_SERVER_TLS_KEY_FILE=/certs/server_key.pem
   python:
     build:
       context: .
       dockerfile: dockerfiles/Dockerfile.py
     ports:
       - 34089:80
-    links: [edgedb]
+    links: [gel]
     environment:
       - *pwd
-      - EDGEDB_HOST=edgedb
-      - EDGEDB_TLS_CA_FILE=/app/ca.pem
+      - GEL_HOST=gel
+      - GEL_TLS_CA_FILE=/app/ca.pem
