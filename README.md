@@ -9,7 +9,7 @@ Gel and the Gel CLI.
 
 This image is intended for use in production, or as part of a
 development setup that involves multiple containers orchestrated by
-Docker Compose or a similar tool. Otherwise, we recommend using the [`edgedb CLI`](https://docs.geldata.com/learn/cli) to install Gel and
+Docker Compose or a similar tool. Otherwise, we recommend using the [`Gel CLI`](https://docs.geldata.com/learn/cli) to install Gel and
 manage local instances.
 
 ## What is Gel?

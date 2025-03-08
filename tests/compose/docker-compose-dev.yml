@@ -1,18 +1,17 @@
-version: "3.3"
 services:
-  edgedb:
+  gel:
     build:
       context: .
-      dockerfile: dockerfiles/Dockerfile.edgedb
+      dockerfile: dockerfiles/Dockerfile.gel
     environment:
-      - EDGEDB_SERVER_SECURITY=insecure_dev_mode
+      - GEL_SERVER_SECURITY=insecure_dev_mode
   python:
     build:
       context: .
       dockerfile: dockerfiles/Dockerfile.py.nocert
     ports:
       - 34089:80
-    links: [edgedb]
+    links: [gel]
     environment:
-      - EDGEDB_CLIENT_SECURITY=insecure_dev_mode
-      - EDGEDB_HOST=edgedb
+      - GEL_CLIENT_SECURITY=insecure_dev_mode
+      - GEL_HOST=gel

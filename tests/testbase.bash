@@ -15,7 +15,7 @@ latest_server_ver() {
     dist+=".${subdist}"
   fi
 
-  idx_url_base="https://packages.edgedb.com/apt/.jsonindexes"
+  idx_url_base="https://packages.geldata.com/apt/.jsonindexes"
   index=$(curl --proto '=https' --tlsv1.2 -fsSL "${idx_url_base}/${dist}.json")
 
   jq_query="
@@ -34,6 +34,7 @@ latest_server_ver() {
     jq_query="
       .packages[]
       | select(.version_key == \"${ver_key}\")
+      | select(.architecture == \"$(arch)\")
       | select(.basename == \"gel-server\")"
 
     echo "$index" | jq -r "$jq_query"
@@ -61,12 +62,10 @@ build_container() {
     buildargs+=(
       --build-arg
       "subdist=${subdist}"
-      --build-arg
-      "branding=gel"
     )
   fi
 
-  docker build -t edgedb/edgedb:latest "${buildargs[@]}" .
+  docker build -t geldata/gel:latest "${buildargs[@]}" .
 }
 
 
@@ -86,9 +85,9 @@ create_instance() {
   local -a link_args
 
   image="$(echo $3 | jq -r '.image // ""')"
-  image="${image:-edgedb/edgedb:latest}"
+  image="${image:-geldata/gel:latest}"
   user="$(echo $3 | jq -r '.user // ""')"
-  user="${user:-edgedb}"
+  user="${user:-admin}"
   password="$(echo $3 | jq -r '.password // ""')"
   database="$(echo $3 | jq -r '.database // ""')"
   tls_ca_file="$(echo $3 | jq -r '.tls_ca_file // ""')"
@@ -110,13 +109,13 @@ create_instance() {
 
   if [ -z "${tls_ca_file}" ]; then
     docker_args+=(
-      --env=EDGEDB_SERVER_TLS_CERT_MODE=generate_self_signed
+      --env=GEL_SERVER_TLS_CERT_MODE=generate_self_signed
     )
   fi
 
   if [ -z "${password}" ]; then
     docker_args+=(
-      --env=EDGEDB_SERVER_DEFAULT_AUTH_METHOD=Trust
+      --env=GEL_SERVER_DEFAULT_AUTH_METHOD=Trust
     )
   fi
 
@@ -178,10 +177,10 @@ create_instance() {
 
   if [ -n "${password}" ]; then
     echo "${password}" \
-      | edgedb "${connect_args[@]}" \
+      | gel "${connect_args[@]}" \
           instance link "${link_args[@]}" "${_instance}"
   else
-    edgedb "${connect_args[@]}" \
+    gel "${connect_args[@]}" \
       instance link "${link_args[@]}" "${_instance}"
   fi
 }
@@ -196,6 +195,6 @@ common_teardown() {
     docker rm -f "${containers[@]}" || :
   fi
   for instance in "${instances[@]}"; do
-    edgedb instance unlink -I "${instance}" || :
+    gel instance unlink -I "${instance}" || :
   done
 }

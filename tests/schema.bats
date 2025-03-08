@@ -2,7 +2,7 @@ load testbase
 
 setup() {
   build_container
-  docker build -t edgedb-test:schema tests/schema
+  docker build -t gel-test:schema tests/schema
 }
 
 teardown() {
@@ -13,28 +13,28 @@ teardown() {
   local container_id
   local instance
 
-  create_instance container_id instance '{"image":"edgedb-test:schema"}'
+  create_instance container_id instance '{"image":"gel-test:schema"}'
 
   # wait until migrations are complete
   sleep 3
 
   # now check that this worked
-  edgedb -I "${instance}" query --output-format=tab-separated \
+  gel -I "${instance}" query --output-format=tab-separated \
     "INSERT Item { name := 'hello' }"
 }
 
-@test "skip applying schema edgedb" {
+@test "skip applying schema gel" {
   local container_id
   local instance
 
-  create_instance container_id instance '{"image":"edgedb-test:schema"}' \
-    --env=EDGEDB_DOCKER_APPLY_MIGRATIONS=never
+  create_instance container_id instance '{"image":"gel-test:schema"}' \
+    --env=GEL_DOCKER_APPLY_MIGRATIONS=never
 
   # wait until migrations are complete
   sleep 3
 
   # now check that this worked
-  edgedb -I "${instance}" query --output-format=tab-separated \
+  gel -I "${instance}" query --output-format=tab-separated \
     "CREATE TYPE Item"
 }
 
@@ -42,14 +42,14 @@ teardown() {
   local container_id
   local instance
 
-  create_instance container_id instance '{"image":"edgedb-test:schema"}' \
+  create_instance container_id instance '{"image":"gel-test:schema"}' \
     --env=GEL_DOCKER_APPLY_MIGRATIONS=never
 
   # wait until migrations are complete
   sleep 3
 
   # now check that this worked
-  edgedb -I "${instance}" query --output-format=tab-separated \
+  gel -I "${instance}" query --output-format=tab-separated \
     "CREATE TYPE Item"
 }
 
@@ -58,18 +58,18 @@ teardown() {
   local instance
 
   create_instance container_id instance '{
-        "image":"edgedb-test:schema",
+        "image":"gel-test:schema",
         "database":"hello"
     }' \
-    --env=EDGEDB_SERVER_DATABASE=hello
+    --env=GEL_SERVER_DEFAULT_BRANCH=hello
 
   # wait until migrations are complete
   sleep 3
 
-  run edgedb -I "${instance}" query "SELECT sys::get_current_database()"
+  run gel -I "${instance}" query "SELECT sys::get_current_database()"
   echo "${lines[@]}"
   [[ ${lines[-1]} = '"hello"' ]]
 
-  edgedb -I "${instance}" query --output-format=tab-separated \
+  gel -I "${instance}" query --output-format=tab-separated \
     "INSERT Item { name := 'hello' }"
 }

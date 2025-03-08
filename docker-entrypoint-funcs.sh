@@ -66,10 +66,6 @@ _EDGEDB_DOCKER_CMDLINE_ARGS=()
 # Set by a caller to edbdocker_die() to signal a specific exict code.
 EDGEDB_DOCKER_ABORT_CODE=1
 
-# VERSION was set in Dockerfile, in the format of either a single major version
-# like "5", or a nightly like "6-3762"
-VERSION_MAJOR=$(echo "${VERSION}" | awk -F '-' '{print $1}')
-
 
 edbdocker_parse_args() {
   if [ "${1:0:1}" != '-' ]; then
@@ -461,9 +457,9 @@ edbdocker_setup_env() {
 
   if [ -z "${GEL_SERVER_RUNSTATE_DIR:-}" ]; then
     if [ "$(id -u)" = "0" ]; then
-      GEL_SERVER_RUNSTATE_DIR="/run/${BRANDING}"
+      GEL_SERVER_RUNSTATE_DIR="/run/gel"
     else
-      GEL_SERVER_RUNSTATE_DIR="/tmp/${BRANDING}"
+      GEL_SERVER_RUNSTATE_DIR="/tmp/gel"
     fi
   fi
 
@@ -487,11 +483,7 @@ edbdocker_setup_env() {
     edbdocker_die "ERROR: invalid value for GEL_DOCKER_APPLY_MIGRATIONS: ${GEL_DOCKER_APPLY_MIGRATIONS}, supported values are: always, never, default."
   fi
 
-  if [ "${VERSION_MAJOR}" -ge 6 ]; then
-    DEFAULT_SERVER_USER="admin"
-  else
-    DEFAULT_SERVER_USER="edgedb"
-  fi
+  DEFAULT_SERVER_USER="admin"
 
   edbdocker_lookup_env_var "GEL_SERVER_PORT" "5656"
   edbdocker_lookup_env_var "GEL_SERVER_BIND_ADDRESS" "0.0.0.0,::"
@@ -510,37 +502,22 @@ edbdocker_setup_env() {
   edbdocker_lookup_env_var "GEL_SERVER_COMPILER_POOL_MODE"
   edbdocker_lookup_env_var "GEL_SERVER_COMPILER_POOL_SIZE"
 
-  if [ "${VERSION_MAJOR}" -ge 5 ]; then
-    if [ -n "${EDGEDB_SERVER_DATABASE}" ]; then
-      if [ -n "${GEL_SERVER_DEFAULT_BRANCH}" ]; then
-        edbdocker_die "ERROR: EDGEDB_SERVER_DATABASE and GEL_SERVER_DEFAULT_BRANCH are mutually exclusive, but both are set"
-      else
-        msg=(
-          "======================================================="
-          "WARNING: EDGEDB_SERVER_DATABASE is deprecated.      "
-          "         Use GEL_SERVER_DEFAULT_BRANCH instead."
-          "======================================================="
-        )
-        edbdocker_log_at_level "warning" "${msg[@]}"
-        GEL_SERVER_DEFAULT_BRANCH="${EDGEDB_SERVER_DATABASE}"
-      fi
-    else
-      if [ -z "${GEL_SERVER_DEFAULT_BRANCH}" ]; then
-        GEL_SERVER_DEFAULT_BRANCH="main"
-      fi
-    fi
-  else
+  if [ -n "${EDGEDB_SERVER_DATABASE}" ]; then
     if [ -n "${GEL_SERVER_DEFAULT_BRANCH}" ]; then
+      edbdocker_die "ERROR: EDGEDB_SERVER_DATABASE and GEL_SERVER_DEFAULT_BRANCH are mutually exclusive, but both are set"
+    else
       msg=(
         "======================================================="
-        "WARNING: GEL_SERVER_DEFAULT_BRANCH is ignored"
-        "         on server versions prior to 5.0."
+        "WARNING: EDGEDB_SERVER_DATABASE is deprecated.      "
+        "         Use GEL_SERVER_DEFAULT_BRANCH instead."
         "======================================================="
       )
       edbdocker_log_at_level "warning" "${msg[@]}"
+      GEL_SERVER_DEFAULT_BRANCH="${EDGEDB_SERVER_DATABASE}"
     fi
-    if [ -z "${EDGEDB_SERVER_DATABASE}" ]; then
-      EDGEDB_SERVER_DATABASE="edgedb"
+  else
+    if [ -z "${GEL_SERVER_DEFAULT_BRANCH}" ]; then
+      GEL_SERVER_DEFAULT_BRANCH="main"
     fi
   fi
 
@@ -555,7 +532,7 @@ edbdocker_setup_env() {
   if [ -n "${GEL_SERVER_DATADIR}" ] && [ -n "${GEL_SERVER_BACKEND_DSN}" ]; then
     edbdocker_die "ERROR: GEL_SERVER_DATADIR and GEL_SERVER_BACKEND_DSN are mutually exclusive, but both are set"
   elif [ -z "${GEL_SERVER_BACKEND_DSN}" ]; then
-    GEL_SERVER_DATADIR="${GEL_SERVER_DATADIR:-/var/lib/$BRANDING/data}"
+    GEL_SERVER_DATADIR="${GEL_SERVER_DATADIR:-/var/lib/gel/data}"
   fi
 
   if [ -n "${GEL_SERVER_PASSWORD}" ] && [ -n "${GEL_SERVER_PASSWORD_HASH}" ]; then
@@ -585,24 +562,24 @@ edbdocker_setup_env() {
     fi
   fi
 
-  mkdir -p "/tmp/$BRANDING"
+  mkdir -p "/tmp/gel"
   if [ "$(id -u)" = "0" ]; then
-    chown "${GEL_SERVER_UID}" "/tmp/$BRANDING"
+    chown "${GEL_SERVER_UID}" "/tmp/gel"
   fi
 
   if [ -z "${GEL_SERVER_TLS_CERT_FILE}" ]; then
     if [ -z "${GEL_SERVER_DATADIR}" ]; then
-      GEL_SERVER_TLS_CERT_FILE="/tmp/$BRANDING/edbtlscert.pem"
-      GEL_SERVER_TLS_KEY_FILE="/tmp/$BRANDING/edbprivkey.pem"
+      GEL_SERVER_TLS_CERT_FILE="/tmp/gel/edbtlscert.pem"
+      GEL_SERVER_TLS_KEY_FILE="/tmp/gel/edbprivkey.pem"
     else
       GEL_SERVER_TLS_CERT_FILE="${GEL_SERVER_DATADIR}/edbtlscert.pem"
       GEL_SERVER_TLS_KEY_FILE="${GEL_SERVER_DATADIR}/edbprivkey.pem"
     fi
   fi
 
-  echo "GEL_SERVER_TLS_CERT=${GEL_SERVER_TLS_CERT_FILE}" >"/tmp/${BRANDING}/secrets"
-  echo "GEL_SERVER_TLS_KEY=${GEL_SERVER_TLS_KEY_FILE}" >>"/tmp/${BRANDING}/secrets"
-  echo "GEL_SERVER_JWS_KEY=${GEL_SERVER_JWS_KEY_FILE}" >>"/tmp/${BRANDING}/secrets"
+  echo "GEL_SERVER_TLS_CERT=${GEL_SERVER_TLS_CERT_FILE}" >"/tmp/gel/secrets"
+  echo "GEL_SERVER_TLS_KEY=${GEL_SERVER_TLS_KEY_FILE}" >>"/tmp/gel/secrets"
+  echo "GEL_SERVER_JWS_KEY=${GEL_SERVER_JWS_KEY_FILE}" >>"/tmp/gel/secrets"
 
   if [ "${GEL_SERVER_DEFAULT_AUTH_METHOD}" = "default" ]; then
     GEL_SERVER_DEFAULT_AUTH_METHOD="SCRAM"
@@ -883,7 +860,7 @@ edbdocker_remote_cluster_is_initialized() {
 # Bootstrap the configured EdgeDB instance.  Expects either
 # GEL_SERVER_DATADIR or GEL_SERVER_BACKEND_DSN to be set in the environment.
 # Optionally takes extra server arguments.  Bootstrap is performed by
-# a temporary edgedb-server process that gets started on a random port
+# a temporary server process that gets started on a random port
 # and is shut down once bootstrap is complete.
 #
 # Usage: `GEL_SERVER_DATADIR=/foo/bar edbdocker_bootstrap_instance --arg=val`
@@ -961,7 +938,7 @@ edbdocker_bootstrap_instance() {
         "                                                                "
         "For example:                                                    "
         "                                                                "
-        "$ docker run -e GEL_SERVER_PASSWORD_FILE=/pass ${BRANDING}/${BRANDING} "
+        "$ docker run -e GEL_SERVER_PASSWORD_FILE=/pass geldata/gel "
         "                                                                "
         "Alternatively, if doing local development and database security "
         "is not a concern, set the GEL_SERVER_SECURITY environment       "
@@ -1029,9 +1006,9 @@ _edbdocker_bootstrap_run_hooks() {
       edbdocker_log_at_level "info" "Bootstrap script $filename"
       if [ "$(id -u)" = "0" ]; then
         gosu "${GEL_SERVER_UID}" \
-          env "${env[@]}" edgedb "${opts[@]}" <"$filename"
+          env "${env[@]}" gel "${opts[@]}" <"$filename"
       else
-        env "${env[@]}" edgedb "${opts[@]}" <"$filename"
+        env "${env[@]}" gel "${opts[@]}" <"$filename"
       fi
     done
   fi
@@ -1048,13 +1025,6 @@ _edbdocker_bootstrap_cb() {
   conn_opts+=( "$@" )
 
   _edbdocker_print_last_generated_cert_if_needed "$status"
-
-  if [ "${VERSION_MAJOR}" -lt 5 ]; then
-    if [ "${EDGEDB_SERVER_DATABASE}" != "edgedb" ]; then
-      echo "CREATE DATABASE \`${EDGEDB_SERVER_DATABASE}\`;" \
-        | edbdocker_cli "${conn_opts[@]}" -- --database="edgedb"
-    fi
-  fi
 
   if [ -d "/gel-bootstrap.d" ]; then
     _edbdocker_bootstrap_run_hooks "/gel-bootstrap.d" "${conn_opts[@]}"
@@ -1092,7 +1062,7 @@ _edbdocker_bootstrap_abort_cb() {
 # Runs schema migrations found in /dbschema unless
 # GEL_DOCKER_APPLY_MIGRATIONS=never.  Expects either GEL_SERVER_DATADIR
 # or GEL_SERVER_BACKEND_DSN to be set in the environment.  Migrations are
-# applied by a temporary edgedb-server process that gets started on a random
+# applied by a temporary server process that gets started on a random
 # port and is shut down once bootstrap is complete.
 #
 # Usage: `GEL_SERVER_DATADIR=/foo/bar edbdocker_run_migrations`
@@ -1144,9 +1114,9 @@ edbdocker_cli() {
   done
 
   if [ "$(id -u)" = "0" ]; then
-    gosu "${GEL_SERVER_UID}" env "${env[@]}" edgedb "${opts[@]}"
+    gosu "${GEL_SERVER_UID}" env "${env[@]}" gel "${opts[@]}"
   else
-    env "${env[@]}" edgedb "${opts[@]}"
+    env "${env[@]}" gel "${opts[@]}"
   fi
 }
 
@@ -1226,7 +1196,7 @@ edbdocker_server_supports() {
 }
 
 
-# Start edgedb-server on a random port, execute the specified callback
+# Start gel-server on a random port, execute the specified callback
 # and shut down the server.
 #
 # Usage: `edbdocker_run_temp_server callback abort_callback status_var --server-arg=val ...`
@@ -1303,10 +1273,8 @@ edbdocker_run_temp_server() {
     server_opts+=(--tls-key-file="${GEL_SERVER_TLS_KEY_FILE}")
   fi
 
-  if [ "${VERSION_MAJOR}" -ge 5 ]; then
-    if [ -n "${GEL_SERVER_DEFAULT_BRANCH}" ]; then
-      server_opts+=(--default-branch="${GEL_SERVER_DEFAULT_BRANCH}")
-    fi
+  if [ -n "${GEL_SERVER_DEFAULT_BRANCH}" ]; then
+    server_opts+=(--default-branch="${GEL_SERVER_DEFAULT_BRANCH}")
   fi
 
   if edbdocker_server_supports "--compiler-pool-mode"; then
@@ -1370,12 +1338,6 @@ edbdocker_run_temp_server() {
       GEL_PORT="${port}"
       GEL_CLIENT_TLS_SECURITY="insecure"
     )
-
-    if [ "${VERSION_MAJOR}" -lt 5 ]; then
-      conn_opts+=(
-        EDGEDB_DATABASE="$EDGEDB_SERVER_DATABASE"
-      )
-    fi
 
     if [ -n "${tls_cert_file}" ]; then
       conn_opts+=(
@@ -1526,11 +1488,11 @@ _edbdocker_print_last_generated_cert_if_needed() {
     "persist the authentication credentials and the certificate by   "
     "running:                                                        "
     "                                                                "
-    "  edgedb ${link_opts[*]} instance link --trust-tls-cert my_instance"
+    "  gel ${link_opts[*]} instance link --trust-tls-cert my_instance"
     "                                                                "
     "You can then connect to the instance by running:                "
     "                                                                "
-    "  edgedb -I my_instance                                         "
+    "  gel -I my_instance                                            "
     "                                                                "
     "If you wish to use the generated certificate manually, it is    "
     "printed below.  Please remember to include the BEGIN and END    "

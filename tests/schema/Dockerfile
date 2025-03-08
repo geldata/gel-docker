@@ -1,2 +1,2 @@
-FROM edgedb/edgedb:latest
+FROM geldata/gel:latest
 COPY /dbschema /dbschema
