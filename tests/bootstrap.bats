@@ -2,7 +2,7 @@ load testbase
 
 setup() {
   build_container
-  docker build -t edgedb-test:bootstrap tests/bootstrap
+  docker build -t gel-test:bootstrap tests/bootstrap
 }
 
 teardown() {
@@ -13,9 +13,9 @@ teardown() {
   local container_id
   local instance
 
-  create_instance container_id instance '{"image":"edgedb-test:bootstrap"}'
+  create_instance container_id instance '{"image":"gel-test:bootstrap"}'
 
-  output=$(edgedb -I "${instance}" query --output-format=tab-separated \
+  output=$(gel -I "${instance}" query --output-format=tab-separated \
     "SELECT Bootstrap.name ORDER BY Bootstrap.name")
   echo "$output"
   run echo "$output"
@@ -31,11 +31,11 @@ teardown() {
   local instance
   local tenant_id
 
-  create_instance container_id instance '{"image":"edgedb-test:bootstrap"}' \
+  create_instance container_id instance '{"image":"gel-test:bootstrap"}' \
     -- \
     --tenant-id=tenantid
 
-  output=$(edgedb -I "${instance}" query --output-format=tab-separated \
+  output=$(gel -I "${instance}" query --output-format=tab-separated \
     "SELECT Bootstrap.name ORDER BY Bootstrap.name")
   echo "$output"
   run echo "$output"

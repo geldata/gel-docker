@@ -11,10 +11,9 @@ on:
       - ci
   pull_request:
     branches:
-      - '*'
+      - "*"
 
 jobs:
-
   test:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
@@ -23,14 +22,14 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v4
       - name: Install packages
         run: sudo apt-get install -y bats jq parallel
-      - name: Install edgedb CLI
-        uses: edgedb/setup-edgedb@v1
+      - name: Install Gel CLI
+        uses: geldata/setup-gel@v1
       - name: Run tests
         run: bats tests/*.bats
       - name: Run ShellCheck
-        uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38  # v2.0
+        uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38 # v2.0
         with:
           ignore_paths: tests hooks
