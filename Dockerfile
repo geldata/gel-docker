@@ -50,7 +50,7 @@ export DEBIAN_FRONTEND=noninteractive; \
     server=gel-server-${version}; \
     [ -n "${exact_version}" ] && server+="=${exact_version}+*"; \
     for i in $(seq 1 5); do [ $i -gt 1 ] && sleep 1; \
-        env apt-get install -y "${server}" gel-cli \
+        env apt-get install -y "${server}" "${server}-ext-postgis" gel-cli \
     && s=0 && break || s=$?; done; exit $s \
 ) \
 && ln -s /usr/bin/${package}-${version} /usr/bin/${package} \
