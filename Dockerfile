@@ -54,7 +54,7 @@ export DEBIAN_FRONTEND=noninteractive; \
     && s=0 && break || s=$?; done; exit $s \
 ) \
 && ln -s /usr/bin/${package}-${version} /usr/bin/${package} \
-&& apt-get remove -y apt-utils gnupg dirmngr wget apt-transport-https \
+&& apt-get remove -y gnupg dirmngr wget apt-transport-https \
 && apt-get purge -y --auto-remove \
 && rm -rf /var/lib/apt/lists/*
 

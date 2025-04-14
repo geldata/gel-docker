@@ -886,6 +886,9 @@ edbdocker_ensure_packages() {
       edbdocker_die "${msg[@]}"
     fi
   done
+
+  (apt-get purge -y --auto-remove \
+    && rm -rf /var/lib/apt/lists/*) > /dev/null 2>&1
 }
 
 
