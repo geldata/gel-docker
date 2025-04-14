@@ -119,6 +119,11 @@ create_instance() {
       --env=GEL_SERVER_DEFAULT_AUTH_METHOD=Trust
     )
   fi
+  if [ -n "${extensions}" ]; then
+    docker_args+=(
+      --env=GEL_DOCKER_EXTENSIONS="${extensions}"
+    )
+  fi
 
   while [ $# -gt 0 ]; do
     if [ "$1" == "--" ]; then
