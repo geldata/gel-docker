@@ -2,7 +2,7 @@ load testbase
 
 setup() {
   build_container
-  docker build -t gel-test:schema-extension tests/schema_with_extension
+  docker build -e GEL_DOCKER_EXTENSIONS="postgis" -t gel-test:schema-extension tests/schema_with_extension
 }
 
 teardown() {
