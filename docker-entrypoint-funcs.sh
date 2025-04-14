@@ -843,7 +843,7 @@ edbdocker_ensure_packages() {
 
   # Exit early if all packages are already installed
   for extension in "${extensions[@]}"; do
-    if ! dpkg -s gel-server-${VERSION}-ext-${extension} > /dev/null 2>&1; then
+    if ! dpkg -s "gel-server-${VERSION}-ext-${extension}" > /dev/null 2>&1; then
       extensions_to_install+=("${extension}")
     fi
   done
@@ -855,7 +855,7 @@ edbdocker_ensure_packages() {
   edbdocker_log_at_level "info" "Updating package lists to install extensions..."
   s=0
   for i in $(seq 1 5); do 
-    [ $i -gt 1 ] && sleep 1;
+    [ "$i" -gt 1 ] && sleep 1;
     apt-get update > /dev/null 2>&1 && break || s=$?; 
   done
   if [ "$s" -ne 0 ]; then
@@ -865,11 +865,11 @@ edbdocker_ensure_packages() {
   for extension in "${extensions_to_install[@]}"; do
     edbdocker_log_at_level "info" "Installing extension: ${extension}..."
     for i in $(seq 1 5); do
-      [ $i -gt 1 ] && sleep 1;
-      apt-get install -y --no-install-recommends gel-server-${VERSION}-ext-${extension} > /dev/null 2>&1 && break || s=$?;
+      [ "$i" -gt 1 ] && sleep 1;
+      apt-get install -y --no-install-recommends "gel-server-${VERSION}-ext-${extension}" > /dev/null 2>&1 && break || s=$?;
     done
     if [ "$s" -ne 0 ]; then
-      extensions=$(apt-cache search gel-server-${VERSION}-ext- 2>&1 | sed "s/gel-server-${VERSION}-ext-/  /g")
+      extension_list=$(apt-cache search "gel-server-${VERSION}-ext-" 2>&1 | sed "s/gel-server-${VERSION}-ext-/  /g")
       msg=(
         "================================================================"
         "                           ERROR                                "
@@ -881,7 +881,7 @@ edbdocker_ensure_packages() {
         "                                                                "
         "Available extensions:                                           "
         "                                                                "
-        "${extensions}"
+        "${extension_list}"
       )
       edbdocker_die "${msg[@]}"
     fi

@@ -91,6 +91,7 @@ create_instance() {
   password="$(echo $3 | jq -r '.password // ""')"
   database="$(echo $3 | jq -r '.database // ""')"
   tls_ca_file="$(echo $3 | jq -r '.tls_ca_file // ""')"
+  extensions="$(echo $3 | jq -r '.extensions // ""')"
 
   if [ $# -gt 2 ]; then
     shift 3

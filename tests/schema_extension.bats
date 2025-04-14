@@ -2,7 +2,7 @@ load testbase
 
 setup() {
   build_container
-  docker build -e GEL_DOCKER_EXTENSIONS="postgis" -t gel-test:schema-extension tests/schema_with_extension
+  docker build -t gel-test:schema-extension tests/schema_with_extension
 }
 
 teardown() {
@@ -13,7 +13,7 @@ teardown() {
   local container_id
   local instance
 
-  create_instance container_id instance '{"image":"gel-test:schema-extension"}'
+  create_instance container_id instance '{"image":"gel-test:schema-extension","extensions":"postgis"}'
 
   # wait until migrations are complete
   sleep 3
