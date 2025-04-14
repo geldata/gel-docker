@@ -268,6 +268,7 @@ edbdocker_prepare() {
   edbdocker_run_entrypoint_parts
   edbdocker_setup_env
   edbdocker_ensure_dirs
+  edbdocker_ensure_packages
 }
 
 
@@ -446,6 +447,7 @@ edbdocker_setup_env() {
   : "${GEL_SERVER_COMPILER_POOL_SIZE:=}"
   : "${GEL_SERVER_TENANT_ID:=${EDGEDB_SERVER_TENANT_ID:-}}"
   : "${GEL_SERVER_RUNSTATE_DIR:=${EDGEDB_SERVER_RUNSTATE_DIR:-}}"
+  : "${GEL_DOCKER_EXTENSIONS:=${EDGEDB_DOCKER_EXTENSIONS:-}}"
 
   if [ -z "${GEL_SERVER_UID:-}" ]; then
     if [ "$(id -u)" = "0" ]; then
@@ -831,6 +833,62 @@ edbdocker_ensure_dirs() {
   if [ "$(id -u)" = "0" ]; then
     chown -R "${GEL_SERVER_UID}" "${GEL_SERVER_RUNSTATE_DIR}"
   fi
+}
+
+
+edbdocker_ensure_packages() {
+  IFS=',' read -ra extensions <<< "$GEL_DOCKER_EXTENSIONS"
+  
+  extensions_to_install=()
+
+  # Exit early if all packages are already installed
+  for extension in "${extensions[@]}"; do
+    if ! dpkg -s "gel-server-${VERSION}-ext-${extension}" > /dev/null 2>&1; then
+      extensions_to_install+=("${extension}")
+    fi
+  done
+
+  if [ "${#extensions_to_install[@]}" -eq 0 ]; then
+    return
+  fi
+
+  edbdocker_log_at_level "info" "Updating package lists to install extensions..."
+  s=0
+  for i in $(seq 1 5); do 
+    [ "$i" -gt 1 ] && sleep 1;
+    apt-get update > /dev/null 2>&1 && break || s=$?; 
+  done
+  if [ "$s" -ne 0 ]; then
+    edbdocker_die "Failed to update package lists"
+  fi
+
+  for extension in "${extensions_to_install[@]}"; do
+    edbdocker_log_at_level "info" "Installing extension: ${extension}..."
+    for i in $(seq 1 5); do
+      [ "$i" -gt 1 ] && sleep 1;
+      apt-get install -y --no-install-recommends "gel-server-${VERSION}-ext-${extension}" > /dev/null 2>&1 && break || s=$?;
+    done
+    if [ "$s" -ne 0 ]; then
+      extension_list=$(apt-cache search "gel-server-${VERSION}-ext-" 2>&1 | sed "s/gel-server-${VERSION}-ext-/  /g")
+      msg=(
+        "================================================================"
+        "                           ERROR                                "
+        "                           -----                                "
+        "                                                                "
+        "Failed to install extension: ${extension}                       "
+        "                                                                "
+        "Please check the extension name and try again.                  "
+        "                                                                "
+        "Available extensions:                                           "
+        "                                                                "
+        "${extension_list}"
+      )
+      edbdocker_die "${msg[@]}"
+    fi
+  done
+
+  (apt-get purge -y --auto-remove \
+    && rm -rf /var/lib/apt/lists/*) > /dev/null 2>&1
 }
 
 

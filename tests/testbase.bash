@@ -91,6 +91,7 @@ create_instance() {
   password="$(echo $3 | jq -r '.password // ""')"
   database="$(echo $3 | jq -r '.database // ""')"
   tls_ca_file="$(echo $3 | jq -r '.tls_ca_file // ""')"
+  extensions="$(echo $3 | jq -r '.extensions // ""')"
 
   if [ $# -gt 2 ]; then
     shift 3
@@ -116,6 +117,11 @@ create_instance() {
   if [ -z "${password}" ]; then
     docker_args+=(
       --env=GEL_SERVER_DEFAULT_AUTH_METHOD=Trust
+    )
+  fi
+  if [ -n "${extensions}" ]; then
+    docker_args+=(
+      --env=GEL_DOCKER_EXTENSIONS="${extensions}"
     )
   fi
 
