@@ -16,7 +16,7 @@ duplicate_envvar_warning() {
     edbvar="EDGEDB_${1#GEL_}"
 
     if [[ -n "${!gelvar-}" ]] && [[ -n "${!edbvar-}" ]]; then
-        edbdocker_log_at_level "wraning" "Both $gelvar and $edbvar are set. Ignoring $edbvar."
+        edbdocker_log_at_level "warning" "Both $gelvar and $edbvar are set. Ignoring $edbvar."
     fi
 }
 
@@ -838,7 +838,7 @@ edbdocker_ensure_dirs() {
 
 edbdocker_ensure_packages() {
   IFS=',' read -ra extensions <<< "$GEL_DOCKER_EXTENSIONS"
-  
+
   extensions_to_install=()
 
   # Exit early if all packages are already installed
@@ -854,9 +854,9 @@ edbdocker_ensure_packages() {
 
   edbdocker_log_at_level "info" "Updating package lists to install extensions..."
   s=0
-  for i in $(seq 1 5); do 
+  for i in $(seq 1 5); do
     [ "$i" -gt 1 ] && sleep 1;
-    apt-get update > /dev/null 2>&1 && break || s=$?; 
+    apt-get update > /dev/null 2>&1 && break || s=$?;
   done
   if [ "$s" -ne 0 ]; then
     edbdocker_die "Failed to update package lists"
@@ -1260,7 +1260,8 @@ edbdocker_server_supports() {
 # Usage: `edbdocker_run_temp_server callback abort_callback status_var --server-arg=val ...`
 edbdocker_run_temp_server() {
   local server_pid
-  local timeout_pid
+  local immediate_pid
+  local kill_pid
   local timeout
   local runstate_dir
   local port
@@ -1426,12 +1427,36 @@ edbdocker_run_temp_server() {
   fi
 
   set +e
+  msg=(
+    "initiating graceful shutdown of the bootstrap server instance"
+  )
+  edbdocker_log_at_level "info" "${msg[@]}"
+  # Graceful shutdown
   kill -TERM "$server_pid" 2>/dev/null
-  (sleep 10 ; kill -KILL "$server_pid") &
-  timeout_pid="$!"
+  # Immediate shutdown after 30s
+  (
+    sleep 30
+    msg=(
+      "Server did not shut down gracefully within 30s, sending SIGTERM again "
+      "to initiate immediate shutdown"
+    )
+    edbdocker_log_at_level "warning" "${msg[@]}"
+    kill -TERM "$server_pid" 2>/dev/null
+  ) &
+  immediate_pid="$!"
+  # Rude shutdown (kill)
+  (
+    sleep 40
+    msg=(
+      "Server did not shut down within 30s, sending SIGKILL"
+    )
+    edbdocker_log_at_level "warning" "${msg[@]}"
+    kill -KILL "$server_pid" 2>/dev/null
+  ) &
+  kill_pid="$!"
   wait -n "$server_pid"
   ecode=$?
-  kill "$timeout_pid" 2>/dev/null
+  kill "$immediate_pid" "$kill_pid" 2>/dev/null
   set -e
 
   if ps -o pid= -p "$server_pid" >/dev/null; then
